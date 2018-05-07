@@ -2,12 +2,31 @@ from bs4 import BeautifulSoup
 
 class ParserHandler:
     
-    @staticmethod
-    def parse_page(page):
-        soup = BeautifulSoup(page, 'html.parser')
-        for div in soup.find_all('div'):
+    def __init__(self):
+        self.soup = None
+
+    def parse_page(self, html):
+        soup = BeautifulSoup(html, 'html.parser')
+        self.soup = soup
+
+    def get_soup(self):
+        return self.soup
+
+    def find(self, tag, attr, txt):
+        res = []
+        for element in self.soup.find_all(tag):
             try:
-                if div['class'] and div['class'].count('ingredients-info') is not 0:
-                    print('achou')
+                if element[attr] and element[attr].count(txt) is not 0:
+                    res.append(element)
             except KeyError:
                 pass
+        return res
+
+    def find_one(self, tag, attr, txt):
+        for element in self.soup.find_all(tag):
+            try:
+                if element[attr] and element[attr].count(txt) is not 0:
+                    return element
+            except KeyError:
+                pass
+        return None
