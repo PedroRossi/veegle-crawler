@@ -12,11 +12,14 @@ class ParserHandler:
     def get_soup(self):
         return self.soup
 
-    def find(self, tag, attr, txt):
+    def find(self, tag, attr = '', txt = ''):
         res = []
         for element in self.soup.find_all(tag):
             try:
-                if element[attr] and element[attr].count(txt) is not 0:
+                if attr is not '':
+                    if element[attr] and element[attr].count(txt) is not 0:
+                        res.append(element)
+                else:
                     res.append(element)
             except KeyError:
                 pass
