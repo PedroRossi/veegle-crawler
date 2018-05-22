@@ -34,9 +34,9 @@ def crawl(domain_name, domain_url, user_agent, search_url_builder, extraction_me
         aux = extraction_method(soup)
         for href in aux:
             print(href)
-            valid += 1 if check_if_valid(href) else 0
             file_name = file_name_builder(href)
             if crawl_page(href, crawler, file_name, 'domains-hr'):
+                valid += 1 if check_if_valid(href) else 0
                 visited += 1
                 links.append(href)
         if only_one_page:
@@ -83,7 +83,6 @@ def crawl_bfs(domain_name, domain_url, user_agent, file_name_builder, check_if_v
         for link in get_all_anchors(soup):
             if link not in seen:
                 links.append(link)
-        # links += [link for link in get_all_anchors(soup) if link not in seen]
         file_name = file_name_builder(curr)
         if crawl_page(curr, crawler, file_name, 'domains-bfs'):
             valid += 1 if check_if_valid(curr) else 0
@@ -241,7 +240,7 @@ def main():
         print(report + '\n')
         ret += report + '\n'
 
-    f = open('./reports-1000.txt', 'w')
+    f = open('./reports-'+str(max_to_visit)+'.txt', 'w')
     f.write(ret)
     f.close()
 
