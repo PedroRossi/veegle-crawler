@@ -74,8 +74,8 @@ def crawl_bfs(domain_name, domain_url, user_agent, file_name_builder, check_if_v
     while len(links) > 0 and visited <= max_visits:
         curr = links[0]
         seen[curr] = True
-        print('BFS: \n- Current: ' + curr + '\n- Visited: ' + str(visited) + '\n- Links: ' + str(len(links)) + '\n')
-        # print(curr)
+        # print('BFS: \n- Current: ' + curr + '\n- Visited: ' + str(visited) + '\n- Links: ' + str(len(links)) + '\n')
+        print(curr)
         links = links[1:]
         soup = crawler.request(curr)
         if soup is None:
@@ -195,7 +195,7 @@ def main():
         }
     ]
 
-    max_to_visit = 100
+    max_to_visit = 1000
 
     for domain in domains:
         t = threading.Thread(
