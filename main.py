@@ -16,10 +16,10 @@ def crawl_page(link, crawler, file_name, root = 'domains'):
             r = crawler.request(link).get_soup()
             [s.extract() for s in r('script')]
             crawler.save_to_cache(r.prettify(), file_name, root)
+            return True
         except Exception as e:
             print(e)
             pass
-        return True
     return False
 
 def crawl(domain_name, domain_url, user_agent, search_url_builder, extraction_method, file_name_builder, check_if_valid, use_phantom = False, only_one_page = False, max_visits = 100):
@@ -72,20 +72,21 @@ def crawl_bfs(domain_name, domain_url, user_agent, file_name_builder, check_if_v
     links = ['/']
     seen[links[0]] = True
     while len(links) > 0 and visited <= max_visits:
-        curr = links[0]            
-        print(curr)
-        valid += 1 if check_if_valid(curr) else 0
+        curr = links[0]
+        seen[curr] = True
+        print('BFS: \n- Current: ' + curr + '\n- Visited: ' + str(visited) + '\n- Links: ' + str(len(links)) + '\n')
+        # print(curr)
         links = links[1:]
         soup = crawler.request(curr)
         if soup is None:
             continue
-        aux = get_all_anchors(soup)
-        to_add = []
-        for link in aux:
+        for link in get_all_anchors(soup):
             if link not in seen:
                 links.append(link)
+        # links += [link for link in get_all_anchors(soup) if link not in seen]
         file_name = file_name_builder(curr)
         if crawl_page(curr, crawler, file_name, 'domains-bfs'):
+            valid += 1 if check_if_valid(curr) else 0
             visited += 1
     report = "BFS: " + domain_name + "\nVisited: " + str(visited) + "\nValid: " + str(valid)
     lock.acquire()
@@ -101,7 +102,7 @@ def main():
             'search_url_builder': lambda i: '/busca?q=&page='+str(i),
             'extraction_method': lambda soup: [link['href'] for link in soup.find('a', 'class', 'box-big-item')],
             'file_name_builder': lambda link: link[link.rfind('/')+1:],
-            'check_if_valid': lambda link: re.compile('^\/receita\/.*\.html$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/receita\/.*\.html$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': False
         },
@@ -112,7 +113,7 @@ def main():
             'search_url_builder': lambda i: '/pesquisa/pag/'+str(i),
             'extraction_method': lambda soup: [link[link.rfind('/'):] for link in [link['href'] for link in soup.find('a', 'class', 'titulo--resultado')]],
             'file_name_builder': lambda link: link[1:],
-            'check_if_valid': lambda link: re.compile('^\/.*receita.*\.html$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/.*receita.*\.html$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': False
         },
@@ -123,7 +124,7 @@ def main():
             'search_url_builder': lambda i: '/page/'+str(i)+'?s',
             'extraction_method': lambda soup: [link[link.rfind('/'):] for link in [link.a['href'] for link in soup.find('article', 'class', 'post')]],
             'file_name_builder': lambda link: link[1:],
-            'check_if_valid': lambda link: re.compile('^\/.*.html$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/.*.html$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': False
         },
@@ -134,7 +135,7 @@ def main():
             'search_url_builder': lambda i: '/index.php/category/receitas-3/page/'+str(i)+'/',
             'extraction_method': lambda soup: [href[href.find('/', 10):] for href in [link.a['href'] for link in soup.find('div', 'class', 'post-media')]],
             'file_name_builder': lambda link: link[link[:len(link)-2].rfind('/')+1:len(link)-1]+'.html',
-            'check_if_valid': lambda link: re.compile('^\/index\.php\/(\d{4})(\/(\d{2})){2}\/.*\/$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/index\.php\/(\d{4})(\/(\d{2})){2}\/.*\/$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': False
         },
@@ -145,7 +146,7 @@ def main():
             'search_url_builder': lambda i: '/receitas/page/'+str(i)+'/',
             'extraction_method': lambda soup: [link.a['href'] for link in soup.find('h2', 'class', 'entry-title')],
             'file_name_builder': lambda link: link[10:len(link)-1]+'.html',
-            'check_if_valid': lambda link: re.compile('^\/receitas\/.*\/$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/receitas\/.*\/$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': False
         },
@@ -156,7 +157,7 @@ def main():
             'search_url_builder': lambda i: '/busca/?q=+#pagina='+str(i),
             'extraction_method': lambda soup: [link[link.find('/', 10):] for link in [link.h5.a['href'] for link in soup.find('div', 'class', 'infos')]],
             'file_name_builder': lambda link: '-'.join([a for a in link.split('/')[1:]]),
-            'check_if_valid': lambda link: re.compile('^\/.*.html$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/.*.html$').match(link) is not None,
             'use_phantom': True,
             'only_one_page': False
         },
@@ -167,7 +168,7 @@ def main():
             'search_url_builder': lambda i: '/categoria/receitas/page/'+str(i)+'/',
             'extraction_method': lambda soup: [link[link.find('/', 10):] for link in [link.a['href'] for link in soup.find('h2', 'class', 'postTitle')]],
             'file_name_builder': lambda link: link[1:len(link)-1]+'.html',
-            'check_if_valid': lambda link: re.compile('^(?!.*(sobre|contato|midia-kit|livro)).*\/$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^(?!.*(sobre|contato|midia-kit|livro)).*\/$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': False
         },
@@ -178,7 +179,7 @@ def main():
             'search_url_builder': lambda i: '/receitas/?next=0001H4753U'+str((i-1)*36)+'N',
             'extraction_method': lambda soup: [link[link.find('/', 10):] for link in [link.a['href'] for link in soup.find('div', 'class', 'thumbnail-standard-wrapper')]],
             'file_name_builder': lambda link: link[link.rfind('/')+1:] + 'l',
-            'check_if_valid': lambda link: re.compile('^\/receitas\/(\d{4})(\/(\d{2})){2}\/.*\.htm$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/receitas\/(\d{4})(\/(\d{2})){2}\/.*\.htm$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': False
         },
@@ -189,14 +190,13 @@ def main():
             'search_url_builder': lambda i: '/receitas-de-a-z/',
             'extraction_method': lambda soup: [link[link.find('/', 10):] for link in [link.strong.a['href'] for link in soup.find('li') if link and link.strong and link.strong.a]],
             'file_name_builder': lambda link: link[link[:len(link)-1].rfind('/'):len(link)-1] + '.html',
-            # fix this for exemples with /receitas/doces/random/
-            'check_if_valid': lambda link: re.compile('^\/receitas\/.*\/$').match(link) is not None,
+            'check_if_valid': lambda link: re.compile(r'^\/receitas\/.*\/$').match(link) is not None,
             'use_phantom': False,
             'only_one_page': True
         }
     ]
 
-    max_to_visit = 1000
+    max_to_visit = 100
 
     for domain in domains:
         t = threading.Thread(
@@ -236,8 +236,14 @@ def main():
     for t in threads:
         t.join()
 
+    ret = ''
     for report in reports:
         print(report + '\n')
+        ret += report + '\n'
+
+    f = open('./reports-1000.txt', 'w')
+    f.write(ret)
+    f.close()
 
 if __name__ == "__main__":
     main()
