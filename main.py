@@ -9,13 +9,14 @@ lock = threading.Lock()
 threads = []
 reports = []
 
-def crawl_page(link, crawler, file_name, root = 'domains'):
-    if not os.path.exists('./' + root + '/' + crawler.name + '/' + file_name):
+def crawl_page(link, crawler, file_name, root, is_valid):
+    s = '1' if is_valid is True else '0'
+    if not os.path.exists('./' + root + '/' + crawler.name + '/' + file_name + '/' + s):
         sleep(1)
         try:
             r = crawler.request(link).get_soup()
             [s.extract() for s in r('script')]
-            crawler.save_to_cache(r.prettify(), file_name, root)
+            crawler.save_to_cache(r.prettify(), file_name, root, s)
             return True
         except Exception as e:
             print(e)
@@ -35,8 +36,9 @@ def crawl(domain_name, domain_url, user_agent, search_url_builder, extraction_me
         for href in aux:
             print(href)
             file_name = file_name_builder(href)
-            if crawl_page(href, crawler, file_name, 'domains-hr'):
-                valid += 1 if check_if_valid(href) else 0
+            is_valid = True if check_if_valid(href) else False
+            if crawl_page(href, crawler, file_name, 'domains-hr', is_valid):
+                valid += 1 if is_valid else 0
                 visited += 1
                 links.append(href)
         if only_one_page:
@@ -47,6 +49,7 @@ def crawl(domain_name, domain_url, user_agent, search_url_builder, extraction_me
             soup = crawler.request(search)
         except:
             soup = None
+    print("HEU: " + domain_name + ", DONE!")
     report = "Heuristic: " + domain_name + "\nVisited: " + str(visited) + "\nValid: " + str(valid)
     lock.acquire()
     reports.append(report)
@@ -74,8 +77,7 @@ def crawl_bfs(domain_name, domain_url, user_agent, file_name_builder, check_if_v
     while len(links) > 0 and visited <= max_visits:
         curr = links[0]
         seen[curr] = True
-        # print('BFS: \n- Current: ' + curr + '\n- Visited: ' + str(visited) + '\n- Links: ' + str(len(links)) + '\n')
-        print(curr)
+        # print(curr)
         links = links[1:]
         soup = crawler.request(curr)
         if soup is None:
@@ -84,9 +86,11 @@ def crawl_bfs(domain_name, domain_url, user_agent, file_name_builder, check_if_v
             if link not in seen:
                 links.append(link)
         file_name = file_name_builder(curr)
-        if crawl_page(curr, crawler, file_name, 'domains-bfs'):
-            valid += 1 if check_if_valid(curr) else 0
+        is_valid = True if check_if_valid(curr) else False
+        if crawl_page(curr, crawler, file_name, 'domains-bfs', is_valid):
+            valid += 1 if is_valid else 0
             visited += 1
+    print("BFS: " + domain_name + ", DONE!")
     report = "BFS: " + domain_name + "\nVisited: " + str(visited) + "\nValid: " + str(valid)
     lock.acquire()
     reports.append(report)
@@ -211,7 +215,6 @@ def main():
             )
         )
         threads.append(t)
-        t.start()
 
     for domain in domains:
         t = threading.Thread(
@@ -230,9 +233,9 @@ def main():
             )
         )
         threads.append(t)
-        t.start()
 
     for t in threads:
+        t.start()
         t.join()
 
     ret = ''

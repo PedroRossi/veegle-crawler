@@ -28,8 +28,8 @@ class Crawler():
         except:
             return None
 
-    def save_to_cache(self, data, file_name, root):
-        path = './' + root + '/' + self.name + '/'
+    def save_to_cache(self, data, file_name, root, is_valid):
+        path = './' + root + '/' + self.name + '/' + is_valid + '/'
         if not os.path.exists(path):
             os.makedirs(path)
         file = open(path + file_name, 'w')
